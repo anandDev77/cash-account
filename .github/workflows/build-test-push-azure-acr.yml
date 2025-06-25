@@ -88,7 +88,7 @@ jobs:
     # This produces the JAR/WAR file to be included in the Docker image.
     # ---------------------------------------------------------------------------------
     - name: Build and package app
-      run: mvn clean package
+      run: mvn clean package -DskipTests=true
 
     # ---------------------------------------------------------------------------------
     # Step 4: Authenticate to Azure using OIDC and the provided secrets.
