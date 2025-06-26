@@ -146,16 +146,6 @@ jobs:
       # - Only commits and pushes if there are actual changes.
       # - The commit message includes the app name and new version (SHA).
       # ---------------------------------------------------------------------------------
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: true
-
-      - name: Azure ACR Login
-        run: az acr login --name $ACR_NAME
 
       - name: Update application
         run: |
@@ -167,7 +157,7 @@ jobs:
           echo "print yq version"
           yq --version
           ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
-          APP_IMAGE="$ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}"
+          APP_IMAGE="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
           VERSION="${{ github.sha }}"
           APP_NAME="${{ env.APP_NAME }}"
           yq e ".spec.cashAccount.image.repository = \"$APP_IMAGE\"" -i "${GITOPS_DIR}/stocktrader-azure-eks-cr.yml"
