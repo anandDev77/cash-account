@@ -155,7 +155,8 @@ jobs:
           cd gitops
           echo "print yq version"
           yq --version
-          APP_IMAGE="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
+          ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
+          APP_IMAGE="$ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}"
           VERSION="${{ github.sha }}"
           APP_NAME="${{ env.APP_NAME }}"
           yq e ".spec.cashAccount.image.repository = \"$APP_IMAGE\"" -i "${GITOPS_DIR}/stocktrader-azure-eks-cr.yml"
