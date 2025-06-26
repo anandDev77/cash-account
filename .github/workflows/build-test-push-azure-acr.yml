@@ -154,6 +154,9 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
 
+      - name: Azure ACR Login
+        run: az acr login --name $ACR_NAME
+
       - name: Update application
         run: |
           set -x
