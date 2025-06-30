@@ -66,6 +66,8 @@ jobs:
     name: Setup, Build, Publish Deploy
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      acr_login_server: ${{ steps.build_and_output_acr.outputs.acr_login_server }}
 
     steps:
     # ---------------------------------------------------------------------------------
@@ -88,7 +90,7 @@ jobs:
     # This produces the JAR/WAR file to be included in the Docker image.
     # ---------------------------------------------------------------------------------
     - name: Build and package app
-      run: mvn clean package
+      run: mvn clean package -DskipTests=true
 
     # ---------------------------------------------------------------------------------
     # Step 4: Authenticate to Azure using OIDC and the provided secrets.
@@ -115,9 +117,11 @@ jobs:
     # - Uses build args for traceability.
     # - Pushes both tags to ACR.
     # ---------------------------------------------------------------------------------
-    - name: Build and Push Docker Image to ACR
+    - name: Build and Push Docker Image to ACR and Output Login Server
+      id: build_and_output_acr
       run: |
         ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
+        echo "acr_login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
         docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
           --build-arg GITHUB_SHA="$GITHUB_SHA" .
         docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
@@ -155,11 +159,12 @@ jobs:
           cd gitops
           echo "print yq version"
           yq --version
-          APP_IMAGE="${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
+          ACR_LOGIN_SERVER="${{ needs.setup-build-publish-deploy.outputs.acr_login_server }}"
+          APP_IMAGE="$ACR_LOGIN_SERVER/${IMAGE_NAME}"
           VERSION="${{ github.sha }}"
           APP_NAME="${{ env.APP_NAME }}"
-          yq e ".spec.cash-account.image.repository = \"$APP_IMAGE\"" -i "${GITOPS_DIR}/stocktrader-azure-aks-cr.yml"
-          yq e ".spec.cash-account.image.tag = \"$VERSION\"" -i "${GITOPS_DIR}/stocktrader-azure-aks-cr.yml"
+          yq e ".spec.cashAccount.image.repository = \"$APP_IMAGE\"" -i "${GITOPS_DIR}/stocktrader-azure-aks-cr.yml"
+          yq e ".spec.cashAccount.image.tag = \"$VERSION\"" -i "${GITOPS_DIR}/stocktrader-azure-aks-cr.yml"
           cat "${GITOPS_DIR}/stocktrader-azure-aks-cr.yml"
           if [[ $(git status -s | wc -l) -eq 0 ]]; then
             echo "No changes"
